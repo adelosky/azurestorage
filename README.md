@@ -1,18 +1,123 @@
-# azurestorage
-Tools and scripts to manage Azure Storage Accounts and Containers
+# 🗄️ Azure Storage Management Tools
 
-Plan: Azure Storage Accounts Monitoring PowerShell Script
-A comprehensive PowerShell solution that replicates and extends Azure Accounts Overview Workbook functionality, overcoming the 200 storage account limitation through Azure Resource Graph and batch monitoring techniques.
+**A comprehensive collection of tools and scripts for managing Azure Storage Accounts and Containers**
 
-Steps
-Set up Azure authentication and module dependencies - Install Az.ResourceGraph, Az.Monitor, Az.Storage modules and establish authenticated sessions across subscriptions
-Implement resource discovery using Azure Resource Graph - Query all storage accounts across subscriptions using KQL to bypass the 200-account workbook limit
-Create batch metric collection functions - Build PowerShell functions using Get-AzMetricsBatch for efficient parallel collection of availability, capacity, transactions, and latency metrics
-Design data processing and aggregation logic - Process collected metrics into workbook-compatible format with error handling, success rates, and performance calculations
-Build export capabilities for custom workbook integration - Generate CSV/JSON outputs and Azure Monitor custom logs that can feed new Azure Workbooks or dashboards
-Implement scheduling and automation framework - Create runbook-ready script with configurable intervals, logging, and alert integration for production deployment
+---
 
-Further Considerations
-Metric scope and frequency: Should we focus on specific metrics (transactions, capacity, availability) or collect comprehensive data? Hourly vs daily collection intervals?
-Output format preference: Export to CSV for Excel analysis, JSON for custom dashboards, or direct Log Analytics ingestion for Azure Workbook integration?
-Authentication approach: Service principal for automation, managed identity in Azure Automation, or interactive authentication for manual runs?
+## 📋 Project Overview
+
+**Azure Storage Accounts Monitoring PowerShell Script** - A robust PowerShell solution that replicates and extends Azure Accounts Overview Workbook functionality, overcoming the 200 storage account limitation through advanced monitoring techniques.
+
+### 🎯 **Key Features**
+
+- **Multi-subscription support** - Monitor storage accounts across all accessible subscriptions
+- **Comprehensive metrics collection** - Transactions, availability, capacity, latency, and more
+- **Multiple output formats** - Console, CSV, JSON, and Log Analytics compatible
+- **Production-ready** - Built-in error handling, progress tracking, and retry logic
+- **Performance optimized** - Efficient batch processing and parallel operations
+
+---
+
+## 🚀 Implementation Roadmap
+
+### **Phase 1: Foundation Setup**
+- ✅ **Azure Authentication & Dependencies**
+  - Install required modules: `Az.Accounts`, `Az.Monitor`, `Az.Storage`
+  - Establish authenticated sessions across subscriptions
+  - Implement connection validation and error handling
+
+### **Phase 2: Resource Discovery**
+- ✅ **Multi-Subscription Storage Account Discovery**
+  - Query storage accounts across all accessible subscriptions
+  - Bypass traditional 200-account limitations
+  - Support for targeted subscription filtering
+
+### **Phase 3: Metrics Collection**
+- ✅ **Batch Metric Collection Functions**
+  - Parallel collection of key storage metrics:
+    - 📊 **Transactions** - Request volume and patterns
+    - 🟢 **Availability** - Service uptime and reliability
+    - 📈 **Capacity** - Storage usage and growth trends
+    - ⚡ **Latency** - End-to-end and server response times
+  - Built-in retry logic and error handling
+
+### **Phase 4: Data Processing**
+- ✅ **Advanced Data Aggregation**
+  - Process metrics into actionable insights
+  - Calculate success rates and performance indicators
+  - Generate summary statistics and trends
+  - Export-ready formatting for multiple platforms
+
+### **Phase 5: Export & Integration**
+- ✅ **Multi-Format Export Capabilities**
+  - 📄 **CSV** - Excel-compatible reports
+  - 📋 **JSON** - Custom dashboard integration
+  - 🖥️ **Console** - Interactive monitoring display
+  - 📊 **Log Analytics** - Azure Workbook integration ready
+
+### **Phase 6: Automation Framework**
+- 🔄 **Production Deployment Ready**
+  - Configurable monitoring intervals
+  - Comprehensive logging and alerting
+  - Azure Automation runbook compatible
+
+---
+
+## 🤔 Configuration Considerations
+
+### **📊 Metric Collection Strategy**
+- **Scope Options:**
+  - 🎯 **Focused** - Core metrics (transactions, capacity, availability)
+  - 📈 **Comprehensive** - All available storage metrics
+- **Frequency:**
+  - ⏱️ **Real-time** - 1-15 minute intervals for critical monitoring
+  - 📅 **Standard** - Hourly collection for operational insights
+  - 📆 **Historical** - Daily aggregation for trend analysis
+
+### **📤 Output Format Preferences**
+- 📊 **CSV Export** - Excel analysis and reporting
+- 📋 **JSON Format** - Custom dashboards and integrations
+- 🔗 **Log Analytics** - Direct Azure Workbook integration
+- 🖥️ **Console Display** - Interactive monitoring sessions
+
+### **🔐 Authentication Approaches**
+- **🤖 Automated Scenarios:**
+  - **Service Principal** - Unattended automation
+  - **Managed Identity** - Azure Automation integration
+- **👤 Interactive Use:**
+  - **User Authentication** - Manual monitoring sessions
+  - **Device Code Flow** - Secure browser-based auth
+
+---
+
+## 📁 Repository Structure
+
+```
+azurestorage/
+├── 📜 Azure-StorageAccount-Monitor.ps1    # Main monitoring script
+├── 📖 README.md                           # This documentation
+└── 🔧 Additional tools and utilities       # Coming soon
+```
+
+---
+
+## 🛠️ Quick Start
+
+1. **Install Prerequisites**
+   ```powershell
+   Install-Module Az.Accounts, Az.Monitor, Az.Storage -Force
+   ```
+
+2. **Connect to Azure**
+   ```powershell
+   Connect-AzAccount
+   ```
+
+3. **Run Monitoring Script**
+   ```powershell
+   .\Azure-StorageAccount-Monitor.ps1 -OutputFormat "Console"
+   ```
+
+---
+
+*Built with ❤️ for Azure Storage management and monitoring*
