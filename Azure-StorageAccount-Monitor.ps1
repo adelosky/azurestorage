@@ -230,18 +230,25 @@ function Get-StorageAccountMetrics {
             try {
                 $metricData = Get-AzMetric -ResourceId $StorageAccount.id -MetricName $metricName -TimeGrain $TimeGrain -StartTime $StartTime -EndTime $EndTime -ErrorAction Stop
                 
-                if ($metricData -and $metricData.Data) {
+                if ($metricData -and $metricData.Data -and $metricData.Data.Count -gt 0) {
                     $values = $metricData.Data | Where-Object { $null -ne $_.Average -or $null -ne $_.Total -or $null -ne $_.Count }
                     
                     $metricSummary = @{
                         MetricName = $metricName
                         Unit = $metricData.Unit
                         DataPoints = $values.Count
-                        Average = if ($values.Average -and $values.Average.Count -gt 0) { ($values.Average | Measure-Object -Average).Average } else { $null }
-                        Total = if ($values.Total -and $values.Total.Count -gt 0) { ($values.Total | Measure-Object -Sum).Sum } else { $null }
-                        Maximum = if ($values.Maximum -and $values.Maximum.Count -gt 0) { ($values.Maximum | Measure-Object -Maximum).Maximum } else { $null }
-                        Minimum = if ($values.Minimum -and $values.Minimum.Count -gt 0) { ($values.Minimum | Measure-Object -Minimum).Minimum } else { $null }
-                        LastValue = if ($values.Count -gt 0 -and $values[-1]) { $values[-1].Average -or $values[-1].Total -or $values[-1].Count } else { $null }
+                        Average = if ($values.Count -gt 0) { ($values | Where-Object { $null -ne $_.Average } | ForEach-Object { $_.Average } | Measure-Object -Average).Average } else { $null }
+                        Total = if ($values.Count -gt 0) { ($values | Where-Object { $null -ne $_.Total } | ForEach-Object { $_.Total } | Measure-Object -Sum).Sum } else { $null }
+                        Maximum = if ($values.Count -gt 0) { ($values | Where-Object { $null -ne $_.Maximum } | ForEach-Object { $_.Maximum } | Measure-Object -Maximum).Maximum } else { $null }
+                        Minimum = if ($values.Count -gt 0) { ($values | Where-Object { $null -ne $_.Minimum } | ForEach-Object { $_.Minimum } | Measure-Object -Minimum).Minimum } else { $null }
+                        LastValue = if ($values.Count -gt 0) { 
+                            $lastPoint = $values[-1]
+                            if ($lastPoint.Average) { $lastPoint.Average }
+                            elseif ($lastPoint.Total) { $lastPoint.Total }
+                            elseif ($lastPoint.Count) { $lastPoint.Count }
+                            elseif ($lastPoint.Maximum) { $lastPoint.Maximum }
+                            else { $null }
+                        } else { $null }
                     }
                     
                     $accountMetrics.Metrics[$metricName] = $metricSummary
@@ -302,12 +309,15 @@ function Export-Results {
                 # Add metric columns
                 foreach ($metricName in $account.Metrics.Keys) {
                     $metric = $account.Metrics[$metricName]
-                    $row | Add-Member -NotePropertyName "$metricName-Average" -NotePropertyValue $metric.Average
-                    $row | Add-Member -NotePropertyName "$metricName-Total" -NotePropertyValue $metric.Total
-                    $row | Add-Member -NotePropertyName "$metricName-Maximum" -NotePropertyValue $metric.Maximum
-                    $row | Add-Member -NotePropertyName "$metricName-Minimum" -NotePropertyValue $metric.Minimum
-                    $row | Add-Member -NotePropertyName "$metricName-DataPoints" -NotePropertyValue $metric.DataPoints
-                    $row | Add-Member -NotePropertyName "$metricName-Unit" -NotePropertyValue $metric.Unit
+                    if ($metric) {
+                        $row | Add-Member -NotePropertyName "$metricName-Average" -NotePropertyValue $metric.Average
+                        $row | Add-Member -NotePropertyName "$metricName-Total" -NotePropertyValue $metric.Total
+                        $row | Add-Member -NotePropertyName "$metricName-Maximum" -NotePropertyValue $metric.Maximum
+                        $row | Add-Member -NotePropertyName "$metricName-Minimum" -NotePropertyValue $metric.Minimum
+                        $row | Add-Member -NotePropertyName "$metricName-DataPoints" -NotePropertyValue $metric.DataPoints
+                        $row | Add-Member -NotePropertyName "$metricName-Unit" -NotePropertyValue $metric.Unit
+                        $row | Add-Member -NotePropertyName "$metricName-Error" -NotePropertyValue $metric.Error
+                    }
                 }
                 
                 $csvData += $row
@@ -344,44 +354,60 @@ function Export-Results {
             
             if ($successfulAccounts.Count -gt 0) {
                 $sampleAccount = $successfulAccounts[0]
-                foreach ($metricName in $sampleAccount.Metrics.Keys) {
-                    $metricValues = $successfulAccounts | ForEach-Object { $_.Metrics[$metricName] } | Where-Object { $null -ne $_.Average -or $null -ne $_.Total }
+                if ($sampleAccount.Metrics -and $sampleAccount.Metrics.Keys.Count -gt 0) {
+                    foreach ($metricName in $sampleAccount.Metrics.Keys) {
+                        $metricValues = $successfulAccounts | ForEach-Object { 
+                            if ($_.Metrics -and $_.Metrics[$metricName]) { 
+                                $_.Metrics[$metricName] 
+                            }
+                        } | Where-Object { $_ -and ($null -ne $_.Average -or $null -ne $_.Total) }
                     
                     if ($metricValues.Count -gt 0) {
                         Write-Host "`n--- $metricName ---" -ForegroundColor Cyan
                         
-                        if ($null -ne $metricValues[0].Average) {
-                            $avgValues = $metricValues | Where-Object { $null -ne $_.Average } | ForEach-Object { $_.Average }
-                            if ($avgValues.Count -gt 0) {
-                                Write-Host "  Average across accounts: $([math]::Round(($avgValues | Measure-Object -Average).Average, 2))" -ForegroundColor White
-                                Write-Host "  Max: $([math]::Round(($avgValues | Measure-Object -Maximum).Maximum, 2))" -ForegroundColor White
-                                Write-Host "  Min: $([math]::Round(($avgValues | Measure-Object -Minimum).Minimum, 2))" -ForegroundColor White
+                            $firstMetric = $metricValues[0]
+                            if ($firstMetric -and $null -ne $firstMetric.Average) {
+                                $avgValues = $metricValues | Where-Object { $_ -and $null -ne $_.Average } | ForEach-Object { $_.Average }
+                                if ($avgValues.Count -gt 0) {
+                                    Write-Host "  Average across accounts: $([math]::Round(($avgValues | Measure-Object -Average).Average, 2))" -ForegroundColor White
+                                    Write-Host "  Max: $([math]::Round(($avgValues | Measure-Object -Maximum).Maximum, 2))" -ForegroundColor White
+                                    Write-Host "  Min: $([math]::Round(($avgValues | Measure-Object -Minimum).Minimum, 2))" -ForegroundColor White
+                                }
                             }
-                        }
-                        
-                        if ($null -ne $metricValues[0].Total) {
-                            $totalValues = $metricValues | Where-Object { $null -ne $_.Total } | ForEach-Object { $_.Total }
-                            if ($totalValues.Count -gt 0) {
-                                Write-Host "  Total across accounts: $([math]::Round(($totalValues | Measure-Object -Sum).Sum, 2))" -ForegroundColor White
+                            
+                            if ($firstMetric -and $null -ne $firstMetric.Total) {
+                                $totalValues = $metricValues | Where-Object { $_ -and $null -ne $_.Total } | ForEach-Object { $_.Total }
+                                if ($totalValues.Count -gt 0) {
+                                    Write-Host "  Total across accounts: $([math]::Round(($totalValues | Measure-Object -Sum).Sum, 2))" -ForegroundColor White
+                                }
                             }
-                        }
-                        
-                        $unit = $metricValues[0].Unit
-                        if ($unit) {
-                            Write-Host "  Unit: $unit" -ForegroundColor Gray
+                            
+                            if ($firstMetric -and $firstMetric.Unit) {
+                                Write-Host "  Unit: $($firstMetric.Unit)" -ForegroundColor Gray
+                            }
                         }
                     }
+                } else {
+                    Write-Host "  No metric data available for display." -ForegroundColor Yellow
                 }
                 
                 Write-Host "`n=== TOP STORAGE ACCOUNTS BY TRANSACTIONS ===" -ForegroundColor Yellow
                 $topByTransactions = $successfulAccounts | 
-                    Where-Object { $_.Metrics.Transactions -and $null -ne $_.Metrics.Transactions.Total } |
+                        $_.Metrics -and 
+                        $_.Metrics.Transactions -and 
+                        $null -ne $_.Metrics.Transactions.Total -and
+                        $_.Metrics.Transactions.Total -gt 0
+                    } |
                     Sort-Object { $_.Metrics.Transactions.Total } -Descending |
                     Select-Object -First 10
                 
-                foreach ($account in $topByTransactions) {
-                    $transactions = [math]::Round($account.Metrics.Transactions.Total, 0)
-                    Write-Host "  $($account.StorageAccountName): $transactions transactions" -ForegroundColor White
+                if ($topByTransactions.Count -gt 0) {
+                    foreach ($account in $topByTransactions) {
+                        $transactions = [math]::Round($account.Metrics.Transactions.Total, 0)
+                        Write-Host "  $($account.StorageAccountName): $transactions transactions" -ForegroundColor White
+                    }
+                } else {
+                    Write-Host "  No transaction data available." -ForegroundColor Yellow
                 }
             }
         }
