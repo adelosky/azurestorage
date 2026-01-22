@@ -1,6 +1,6 @@
 # 🗄️ Azure Storage Management Tools
 
-**A comprehensive collection of tools and scripts for managing Azure Storage Accounts and Containers**
+**A comprehensive collection of tools and scripts for managing Azure Storage Accounts**
 
 ---
 
