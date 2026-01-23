@@ -393,6 +393,7 @@ function Export-Results {
                 
                 Write-Host "`n=== TOP STORAGE ACCOUNTS BY TRANSACTIONS ===" -ForegroundColor Yellow
                 $topByTransactions = $successfulAccounts | 
+                    Where-Object {
                         $_.Metrics -and 
                         $_.Metrics.Transactions -and 
                         $null -ne $_.Metrics.Transactions.Total -and
