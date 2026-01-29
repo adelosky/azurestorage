@@ -161,11 +161,12 @@ function Get-AllStorageAccounts {
         # Get list of subscriptions to process
         if ($SubscriptionIds -and $SubscriptionIds.Count -gt 0) {
             $subscriptions = $SubscriptionIds | ForEach-Object {
+                $subscriptionId = $_
                 try {
-                    Get-AzSubscription -SubscriptionId $_ -ErrorAction SilentlyContinue
+                    Get-AzSubscription -SubscriptionId $subscriptionId -ErrorAction SilentlyContinue
                 }
                 catch {
-                    Write-Warning "Failed to access subscription $_: $($_.Exception.Message)"
+                    Write-Warning "Failed to access subscription ${subscriptionId}: $($_.Exception.Message)"
                     $null
                 }
             } | Where-Object { $null -ne $_ }
